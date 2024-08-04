@@ -1,55 +1,90 @@
 import color from "@/@core/color";
 import { AntDesign } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, Button } from "react-native";
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useContext, useEffect, useState } from "react";
 import { AuthContext, AuthContextType } from '@/app/context/authContext';
+import { router } from "expo-router";
+import {handleLoginApi} from "../../app/Core/api/commoApi"
+import { useDispatch, useSelector } from "react-redux";
+import { ApiRoutes } from "@/app/Core/constants";
+import { WebSocket } from "@/app/redux/reducer/common";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginPage() {
-   const contextData:any|null= useContext(AuthContext)
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: '801426667082-pg6ddu5qsg6dqrldchp10r79jp03hm1e.apps.googleusercontent.com',
-    webClientId: '801426667082-l2pedgl1gkodc4cb7afgmb4c7vm2p9nh.apps.googleusercontent.com',
-    // expoClientId: '801426667082-l2pedgl1gkodc4cb7afgmb4c7vm2p9nh.apps.googleusercontent.com',
-    redirectUri:'http://localhost:8081'
+  const dispatch =  useDispatch()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const contextData: any | null = useContext(AuthContext)
+  const [ws1, setWs1] = useState<any>()
+  const { webSocketdata } = useSelector((store:any) => store.common);
+  
+  const connectWebsocket = () => {
+    const webSocketConnect = new WebSocket(
+      `${ApiRoutes.WS_HOSTNAME}/ws/{script}`
+    );
+    webSocketConnect.addEventListener("close", () => {
+      connectWebsocket();
+    });
+    setWs1(webSocketConnect);
+    dispatch(WebSocket(webSocketConnect));
+  };
+  const handleLogin = async () => {
+    const Data= {username:email, password:password}
+    await handleLoginApi(Data)
+      .then(() => { 
+        router.push('/home')
+      })
+      .catch((error) => {
+        console.log(error);
+        router.push('/home')
       });
-
-  useEffect(() => {
-    if (response?.type === "success") {
-      getUserData(response.authentication&&response.authentication?.accessToken);
-    }
-  }, [response]);
-
-  const getUserData = async (token: string | null) => {
-    if (token) {
-      try {
-        const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        contextData.setUserData(data)
-      } catch (error) {
-        console.error(error);
-      }
-    }
-      };
+      connectWebsocket()
     
-
+    };
+    useEffect(() => {
+      if (webSocketdata == null) {
+        connectWebsocket();
+      }
+    }, [])
+  
+    const messageReceiveHandler = async (event:any) => {
+      // NotificationComponent(event)
+    };
+  
+    useEffect(() => {
+      if (ws1 != null) {
+        ws1.addEventListener("message", messageReceiveHandler);
+      }
+    }, [ws1]);
+    
   return (
     <View>
       <Image style={styles.image} source={require("../../assets/images/login.jpg")} />
       <View style={styles.container}>
-        <Text style={styles.welcometitle}>Welcome to LMS.</Text>
-        <Text style={styles.subtitle}>Login / Signup.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
-          <AntDesign name="google" size={34} color="#FFFFFF" />
-          <Text style={styles.buttontext}>Sign in With Google.</Text>
-        </TouchableOpacity>
+        <Text style={styles.welcometitle}>Welcome to My app.</Text>
+        <Text style={styles.subtitle}>Login</Text>
       </View>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      <Button title="Login" onPress={handleLogin} />
     </View>
   );
 }
@@ -74,7 +109,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 25,
-    marginTop: 200,
     paddingBottom: 25,
   },
   button: {
@@ -91,5 +125,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     marginStart: 20,
     color: "#FFFFFF"
-  }
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    marginHorizontal:10,
+    paddingHorizontal: 8,
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+
 });

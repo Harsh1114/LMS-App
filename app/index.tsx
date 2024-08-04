@@ -1,17 +1,20 @@
 import { StyleSheet, View } from "react-native";
-import {AuthContext} from "./context/authContext"
-import { useState } from "react";
+import {  useState } from "react";
 import { Redirect } from "expo-router";
 
-
+import { Provider,  } from 'react-redux';
+import { store } from "./redux/store";
+import LoginPage from "@/Pages/auth/login";
 
 export default function App() {
-const [userData,setUserData]=useState()
+  const [userData, setUserData] = useState()
+
   return (
     <View style={styles.container}>
-      <AuthContext.Provider value={{ userData, setUserData }}>
+      {/* <Provider store={store}>
+        <LoginPage />
+      </Provider> */}
       <Redirect href={!userData ? "/(routes)/home" : "/(routes)/login"} />
-      </AuthContext.Provider>
     </View>
   );
 }

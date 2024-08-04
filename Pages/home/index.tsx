@@ -2,8 +2,8 @@
 import {View} from "react-native";
 import IntroScreen from "./introscreen";
 import SearchBar from "./searchbar";
-import Slider from "./slider";
-import Courses from "./courses";
+import Slider from "./slider";  
+import Users from "./users";
 
 export default function HomePage() {
     return (
@@ -11,7 +11,7 @@ export default function HomePage() {
            <IntroScreen />
         <SearchBar />
         <Slider />
-        <Courses/>
+        <Users/>
              </View>
   );
 }
